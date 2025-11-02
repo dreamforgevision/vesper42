@@ -1,0 +1,6 @@
+/bin/sh: /Users/roeiwachtel/Documents/vesper42/daily-update.sh: No such file or directory
+/bin/sh: /Users/roeiwachtel/Documents/vesper42/daily-update.sh: No such file or directory
+/bin/sh: /Users/roeiwachtel/Documents/vesper42/daily-update.sh: No such file or directory
+/bin/sh: /Users/roeiwachtel/Documents/vesper42/daily-update.sh: No such file or directory
+/bin/sh: /Users/roeiwachtel/Documents/vesper42/daily-update.sh: No such file or directory
+/bin/sh: /Users/roeiwachtel/Documents/vesper42/daily-update.sh: No such file or directory

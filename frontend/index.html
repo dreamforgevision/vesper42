@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vesper42 - Entertainment Intelligence Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        
+        .header {
+            text-align: center;
+            padding: 40px 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 48px;
+            margin-bottom: 10px;
+        }
+        
+        .header p { 
+            opacity: 0.9; 
+            font-size: 18px; 
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 15px;
+        }
+        
+        .tab-btn {
+            padding: 12px 24px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .tab-btn.active {
+            background: white;
+            color: #764ba2;
+            border-color: white;
+        }
+        
+        .tab-content { 
+            display: none; 
+        }
+        
+        .tab-content.active { 
+            display: block; 
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+        
+        .card h3 {
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 24px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+        
+        .metric-label {
+            opacity: 0.9;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-primary {
+            background: white;
+            color: #764ba2;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            font-weight: 600;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: inline-block;
+        }
+        
+        .badge.high {
+            background: rgba(72, 187, 120, 0.2);
+            color: #48bb78;
+        }
+        
+        .badge.medium {
+            background: rgba(237, 137, 54, 0.2);
+            color: #ed8936;
+        }
+        
+        .badge.low {
+            background: rgba(245, 101, 101, 0.2);
+            color: #f56565;
+        }
+        
+        .status {
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            display: none;
+        }
+        
+        .status.show {
+            display: block;
+        }
+        
+        .status.info {
+            background: rgba(66, 153, 225, 0.2);
+            border: 1px solid rgba(66, 153, 225, 0.4);
+        }
+        
+        .status.success {
+            background: rgba(72, 187, 120, 0.2);
+            border: 1px solid rgba(72, 187, 120, 0.4);
+        }
+        
+        .status.error {
+            background: rgba(245, 101, 101, 0.2);
+            border: 1px solid rgba(245, 101, 101, 0.4);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 16px;
+        }
+        
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎬 Vesper42</h1>
+            <p>Entertainment Intelligence Platform</p>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('dashboard', event)">
+                📊 Dashboard
+            </button>
+            <button class="tab-btn" onclick="switchTab('trends', event)">
+                📈 Trends
+            </button>
+            <button class="tab-btn" onclick="switchTab('predict', event)">
+                🎯 Predict
+            </button>
+            <button class="tab-btn" onclick="switchTab('social', event)">
+                🔥 Social
+            </button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="totalShows">0</div>
+                    <div class="metric-label">Shows Tracked</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="avgMomentum">0</div>
+                    <div class="metric-label">Avg Momentum</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="socialSignals">0</div>
+                    <div class="metric-label">Social Signals</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="lastUpdate">Never</div>
+                    <div class="metric-label">Last Update</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>⚡ Quick Actions</h3>
+                <button class="btn-primary" onclick="refreshDashboard()">
+                    🔄 Refresh Dashboard
+                </button>
+                <button class="btn-primary" onclick="testConnection()">
+                    🔌 Test Connection
+                </button>
+            </div>
+
+            <div class="card">
+                <h3>📊 System Status</h3>
+                <div id="systemStatus">Click "Test Connection" to check server status</div>
+            </div>
+        </div>
+
+        <!-- Trends Tab -->
+        <div id="trends" class="tab-content">
+            <div class="card">
+                <h3>📈 Entertainment Trends</h3>
+                <button class="btn-primary" onclick="collectTrends()" id="collectBtn">
+                    📥 Collect Latest Trends
+                </button>
+                <div class="status" id="trendsStatus"></div>
+            </div>
+
+            <div class="card">
+                <h3>🔥 Top Trending Content</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Genre</th>
+                                <th>Rating</th>
+                                <th>Popularity</th>
+                                <th>Momentum</th>
+                            </tr>
+                        </thead>
+                        <tbody id="trendsTable">
+                            <tr>
+                                <td colspan="6" style="text-align: center; opacity: 0.7;">
+                                    No data yet. Click "Collect Latest Trends" to begin.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predict Tab -->
+        <div id="predict" class="tab-content">
+            <div class="card">
+                <h3>🎯 Project Success Predictor</h3>
+                <form onsubmit="predictScore(event)">
+                    <div class="form-group">
+                        <label>Project Title</label>
+                        <input type="text" id="title" required placeholder="Enter your project title">
+                    </div>
+                    <div class="form-group">
+                        <label>Genre</label>
+                        <input type="text" id="genre" required placeholder="e.g., Drama, Comedy, Thriller">
+                    </div>
+                    <div class="form-group">
+                        <label>Logline</label>
+                        <textarea id="logline" rows="3" required placeholder="One-sentence description of your project"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Target Audience</label>
+                        <input type="text" id="audience" required placeholder="e.g., Young Adults, Families">
+                    </div>
+                    <button type="submit" class="btn-primary" id="predictBtn">
+                        🔮 Predict Success
+                    </button>
+                </form>
+                <div id="predictResult"></div>
+            </div>
+        </div>
+
+        <!-- Social Tab -->
+        <div id="social" class="tab-content">
+            <div class="card">
+                <h3>🔥 Social Media Insights</h3>
+                <button class="btn-primary" onclick="collectSocial()" id="socialBtn">
+                    📱 Collect Social Data
+                </button>
+                <div class="status" id="socialStatus"></div>
+            </div>
+
+            <div class="card">
+                <h3>💬 Social Buzz</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Show</th>
+                                <th>Platform</th>
+                                <th>Sentiment</th>
+                                <th>Engagement</th>
+                                <th>Mentions</th>
+                                <th>Buzz Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="socialTable">
+                            <tr>
+                                <td colspan="6" style="text-align: center; opacity: 0.7;">
+                                    No social data collected yet.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_URL = 'http://localhost:3001';
+        
+        // Tab Switching
+        function switchTab(tabName, event) {
+            console.log('Switching to tab:', tabName);
+            
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active to clicked button
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+        }
+        
+        // Show Status Message
+        function showStatus(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            if (element) {
+                element.className = `status ${type} show`;
+                element.innerHTML = message;
+                
+                if (type === 'success') {
+                    setTimeout(() => {
+                        element.classList.remove('show');
+                    }, 5000);
+                }
+            }
+        }
+        
+        // Dashboard Functions
+        async function refreshDashboard() {
+            console.log('Refreshing dashboard...');
+            try {
+                const response = await fetch(`${API_URL}/api/dashboard/metrics`);
+                const data = await response.json();
+                
+                document.getElementById('totalShows').textContent = data.totalShows || 0;
+                document.getElementById('avgMomentum').textContent = data.avgMomentum || 0;
+                document.getElementById('socialSignals').textContent = data.socialSignals || 0;
+                document.getElementById('lastUpdate').textContent = data.lastUpdate || 'Now';
+                
+                showStatus('systemStatus', '✅ Dashboard refreshed successfully', 'success');
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('systemStatus', '❌ Error: ' + error.message, 'error');
+            }
+        }
+        
+        // Test Connection
+        async function testConnection() {
+            console.log('Testing connection...');
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+                
+                const statusDiv = document.getElementById('systemStatus');
+                statusDiv.innerHTML = `
+                    <div style="padding: 10px; background: rgba(72, 187, 120, 0.2); border-radius: 8px;">
+                        ✅ Server Status: ${data.status}<br>
+                        ⏰ Server Time: ${new Date(data.timestamp).toLocaleString()}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Connection error:', error);
+                const statusDiv = document.getElementById('systemStatus');
+                statusDiv.innerHTML = `
+                    <div style="padding: 10px; background: rgba(245, 101, 101, 0.2); border-radius: 8px;">
+                        ❌ Connection Error: ${error.message}<br>
+                        Please check if the server is running on port 3001
+                    </div>
+                `;
+            }
+        }
+        
+        // Collect Trends
+        async function collectTrends() {
+            console.log('Collecting trends...');
+            const btn = document.getElementById('collectBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Collecting...';
+            
+            showStatus('trendsStatus', '🔄 Collecting trends from database...', 'info');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/trends/collect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('trendsStatus', `✅ Collected ${data.count} trends successfully!`, 'success');
+                    await displayTrends();
+                    await refreshDashboard();
+                } else {
+                    throw new Error(data.error || 'Failed to collect trends');
+                }
+            } catch (error) {
+                console.error('Error collecting trends:', error);
+                showStatus('trendsStatus', '❌ Error: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📥 Collect Latest Trends';
+            }
+        }
+        
+        // Display Trends
+        async function displayTrends() {
+            try {
+                const response = await fetch(`${API_URL}/api/trends`);
+                const trends = await response.json();
+                
+                const tbody = document.getElementById('trendsTable');
+                
+                if (!trends || trends.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center; opacity: 0.7;">
+                                No trends data available
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = trends.map(item => {
+                    const momentumClass = item.momentum_score >= 7 ? 'high' : 
+                                        item.momentum_score >= 4 ? 'medium' : 'low';
+                    return `
+                        <tr>
+                            <td>${item.title || 'N/A'}</td>
+                            <td>${item.media_type || 'N/A'}</td>
+                            <td>${item.genre || 'N/A'}</td>
+                            <td>${item.vote_average || 'N/A'}</td>
+                            <td>${item.popularity || 'N/A'}</td>
+                            <td>
+                                <span class="badge ${momentumClass}">
+                                    ${item.momentum_score || 'N/A'}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error displaying trends:', error);
+            }
+        }
+        
+        // Predict Score
+        async function predictScore(event) {
+            event.preventDefault();
+            console.log('Predicting score...');
+            
+            const btn = document.getElementById('predictBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Analyzing...';
+            
+            const projectData = {
+                title: document.getElementById('title').value,
+                genre: document.getElementById('genre').value,
+                logline: document.getElementById('logline').value,
+                targetAudience: document.getElementById('audience').value
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/api/predict/score`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(projectData)
+                });
+                
+                const result = await response.json();
+                
+                const resultDiv = document.getElementById('predictResult');
+                resultDiv.innerHTML = `
+                    <div class="card" style="margin-top: 20px; background: rgba(72, 187, 120, 0.1);">
+                        <h3>📊 Prediction Results</h3>
+                        <div class="metrics-grid">
+                            <div class="metric-card">
+                                <div class="metric-value">${result.score}/100</div>
+                                <div class="metric-label">Success Score</div>
+                            </div>
+                            <div class="metric-card">
+                                <div class="metric-value">${result.marketFit}</div>
+                                <div class="metric-label">Market Fit</div>
+                            </div>
+                        </div>
+                        <p style="margin-top: 20px;">${result.analysis}</p>
+                        ${result.recommendations ? `
+                            <h4 style="margin-top: 20px;">💡 Recommendations:</h4>
+                            <ul style="list-style: none; padding: 0;">
+                                ${result.recommendations.map(r => `<li>• ${r}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                    </div>
+                `;
+            } catch (error) {
+                console.error('Error predicting score:', error);
+                document.getElementById('predictResult').innerHTML = `
+                    <div class="status error show">
+                        ❌ Error: ${error.message}
+                    </div>
+                `;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🔮 Predict Success';
+            }
+        }
+        
+        // Collect Social Data
+        async function collectSocial() {
+            console.log('Collecting social data...');
+            const btn = document.getElementById('socialBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Collecting...';
+            
+            showStatus('socialStatus', '🔄 Collecting social signals...', 'info');
+            
+            try {
+                const response = await fetch(`${API_URL}/api/social/collect`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showStatus('socialStatus', `✅ Collected ${data.count} signals from ${data.shows} shows!`, 'success');
+                    await displaySocial();
+                    await refreshDashboard();
+                } else {
+                    throw new Error(data.error || 'Failed to collect social data');
+                }
+            } catch (error) {
+                console.error('Error collecting social:', error);
+                showStatus('socialStatus', '❌ Error: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '📱 Collect Social Data';
+            }
+        }
+        
+        // Display Social Data
+        async function displaySocial() {
+            try {
+                const response = await fetch(`${API_URL}/api/social`);
+                const social = await response.json();
+                
+                const tbody = document.getElementById('socialTable');
+                
+                if (!social || social.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="6" style="text-align: center; opacity: 0.7;">
+                                No social data available
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = social.map(item => {
+                    const sentimentClass = item.sentiment_score >= 7 ? 'high' : 
+                                         item.sentiment_score >= 4 ? 'medium' : 'low';
+                    const buzzClass = item.buzz_score >= 7 ? 'high' : 
+                                    item.buzz_score >= 4 ? 'medium' : 'low';
+                    return `
+                        <tr>
+                            <td>${item.show_title || 'N/A'}</td>
+                            <td>${item.platform || 'N/A'}</td>
+                            <td>
+                                <span class="badge ${sentimentClass}">
+                                    ${item.sentiment_score || 'N/A'}
+                                </span>
+                            </td>
+                            <td>${item.engagement_score || 'N/A'}</td>
+                            <td>${item.mention_count || 0}</td>
+                            <td>
+                                <span class="badge ${buzzClass}">
+                                    ${item.buzz_score || 'N/A'}
+                                </span>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (error) {
+                console.error('Error displaying social:', error);
+            }
+        }
+        
+        // Initialize on load
+        window.onload = function() {
+            console.log('Dashboard loaded');
+            refreshDashboard();
+        };
+    </script>
+</body>
+</html>

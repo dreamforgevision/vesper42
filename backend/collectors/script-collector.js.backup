@@ -1,0 +1,217 @@
+// =========================================
+// VESPER42 - Script Collector
+// Collects scripts from IMSDB (Internet Movie Script Database)
+// =========================================
+
+require('dotenv').config();
+const axios = require('axios');
+const cheerio = require('cheerio');
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize Supabase (use your credentials)
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
+class ScriptCollector {
+  constructor() {
+    this.baseUrl = 'https://imsdb.com';
+    this.scriptsUrl = `${this.baseUrl}/all-scripts.html`;
+  }
+
+  // Step 1: Get list of all available scripts
+  async getScriptList() {
+    console.log('📋 Fetching script list from IMSDB...');
+    
+    try {
+      const response = await axios.get(this.scriptsUrl);
+      const $ = cheerio.load(response.data);
+      const scripts = [];
+
+      // Find all script links
+      $('td > a').each((i, elem) => {
+        const title = $(elem).text().trim();
+        const href = $(elem).attr('href');
+        
+        if (href && href.includes('/Movie Scripts/')) {
+          scripts.push({
+            title,
+            url: `${this.baseUrl}${href}`
+          });
+        }
+      });
+
+      console.log(`✅ Found ${scripts.length} scripts available`);
+      return scripts;
+      
+    } catch (error) {
+      console.error('❌ Error fetching script list:', error.message);
+      return [];
+    }
+  }
+
+  // Step 2: Download a single script
+  async downloadScript(scriptInfo) {
+    console.log(`📥 Downloading: ${scriptInfo.title}...`);
+    
+    try {
+      // Get the script page
+      const response = await axios.get(scriptInfo.url);
+      const $ = cheerio.load(response.data);
+      
+      // Find the actual script link
+      const scriptLink = $('a[href*="/scripts/"]').attr('href');
+      if (!scriptLink) {
+        console.log(`⚠️  Script link not found for ${scriptInfo.title}`);
+        return null;
+      }
+
+      // Download the actual script text
+      const scriptUrl = `${this.baseUrl}${scriptLink}`;
+      const scriptResponse = await axios.get(scriptUrl);
+      const script$ = cheerio.load(scriptResponse.data);
+      
+      // Extract the script text (usually in <pre> or <td> tags)
+      let scriptText = script$('pre').text() || script$('td.scrtext').text();
+      
+      if (!scriptText || scriptText.length < 100) {
+        console.log(`⚠️  No valid script text found for ${scriptInfo.title}`);
+        return null;
+      }
+
+      console.log(`✅ Downloaded ${scriptInfo.title} (${scriptText.length} characters)`);
+      
+      return {
+        title: scriptInfo.title,
+        source: 'imsdb',
+        source_url: scriptUrl,
+        raw_text: scriptText
+      };
+      
+    } catch (error) {
+      console.log(`❌ Error downloading ${scriptInfo.title}: ${error.message}`);
+      return null;
+    }
+  }
+
+  // Step 3: Basic analysis of the script
+  analyzeScript(scriptData) {
+    const text = scriptData.raw_text;
+    
+    // Count scenes (INT. or EXT.)
+    const sceneCount = (text.match(/\b(INT\.|EXT\.)/gi) || []).length;
+    
+    // Estimate page count (industry standard: ~60 lines per page)
+    const lines = text.split('\n').length;
+    const pageCount = Math.ceil(lines / 60);
+    
+    // Count character names (all caps lines, typically names)
+    const characterMatches = text.match(/^\s{20,}[A-Z][A-Z\s]+$/gm) || [];
+    const uniqueCharacters = [...new Set(characterMatches.map(c => c.trim()))];
+    
+    // Dialogue ratio (rough estimate: lines after character names)
+    const dialogueLines = text.match(/^\s{10,}.+$/gm) || [];
+    const dialogueRatio = dialogueLines.length / lines;
+    
+    return {
+      ...scriptData,
+      page_count: pageCount,
+      scene_count: sceneCount,
+      character_count: uniqueCharacters.length,
+      dialogue_ratio: Math.round(dialogueRatio * 100) / 100,
+      total_dialogue_lines: dialogueLines.length,
+      processed: true
+    };
+  }
+
+  // Step 4: Save to Supabase
+  async saveScript(scriptData) {
+    console.log(`💾 Saving ${scriptData.title} to database...`);
+    
+    try {
+      const { data, error } = await supabase
+        .from('scripts')
+        .insert([scriptData])
+        .select();
+
+      if (error) throw error;
+      
+      console.log(`✅ Saved ${scriptData.title} to database!`);
+      return data;
+      
+    } catch (error) {
+      console.error(`❌ Error saving ${scriptData.title}:`, error.message);
+      return null;
+    }
+  }
+
+  // Main function: Collect multiple scripts
+  async collectScripts(limit = 10) {
+    console.log(`\n🚀 Starting script collection (limit: ${limit})...\n`);
+    
+    // Get list of available scripts
+    const scriptList = await this.getScriptList();
+    
+    if (scriptList.length === 0) {
+      console.log('❌ No scripts found to collect');
+      return;
+    }
+
+    // Take only the first 'limit' scripts
+    const scriptsToCollect = scriptList.slice(0, limit);
+    let successCount = 0;
+
+    // Process each script
+    for (let i = 0; i < scriptsToCollect.length; i++) {
+      const scriptInfo = scriptsToCollect[i];
+      console.log(`\n[${i + 1}/${scriptsToCollect.length}]`);
+      
+      // Check if already exists in database
+      const { data: existing } = await supabase
+        .from('scripts')
+        .select('id')
+        .eq('title', scriptInfo.title)
+        .eq('source', 'imsdb')
+        .single();
+
+      if (existing) {
+        console.log(`⏭️  ${scriptInfo.title} already in database, skipping...`);
+        continue;
+      }
+
+      // Download script
+      const scriptData = await this.downloadScript(scriptInfo);
+      if (!scriptData) continue;
+
+      // Analyze script
+      const analyzedData = this.analyzeScript(scriptData);
+
+      // Save to database
+      const saved = await this.saveScript(analyzedData);
+      if (saved) successCount++;
+
+      // Be nice to the server - wait 2 seconds between requests
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
+
+    console.log(`\n✅ Collection complete! Successfully collected ${successCount}/${scriptsToCollect.length} scripts\n`);
+  }
+}
+
+// Export for use in other files
+module.exports = ScriptCollector;
+
+// If run directly, collect 10 scripts as a test
+if (require.main === module) {
+  const collector = new ScriptCollector();
+  collector.collectScripts(100)
+    .then(() => {
+      console.log('🎉 Script collection finished!');
+      process.exit(0);
+    })
+    .catch(error => {
+      console.error('💥 Fatal error:', error);
+      process.exit(1);
+    });
+}

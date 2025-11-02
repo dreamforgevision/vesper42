@@ -1,0 +1,290 @@
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
+
+const app = express();
+const PORT = process.env.PORT || 3001;
+
+app.use(cors());
+app.use(express.json());
+
+const { createClient } = require('@supabase/supabase-js');
+const supabase = createClient(
+  process.env.SUPABASE_URL || '',
+  process.env.SUPABASE_KEY || ''
+);
+
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'VESPER42 Entertainment Intelligence API',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/stats', async (req, res) => {
+  try {
+    const { count: scriptCount } = await supabase
+      .from('scripts')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: sceneCount } = await supabase
+      .from('scenes')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: dialogueCount } = await supabase
+      .from('dialogue')
+      .select('*', { count: 'exact', head: true });
+    
+    const { count: patternCount } = await supabase
+      .from('learned_patterns')
+      .select('*', { count: 'exact', head: true });
+    
+    res.json({
+      success: true,
+      stats: {
+        scripts: scriptCount || 0,
+        scenes: sceneCount || 0,
+        dialogue_lines: dialogueCount || 0,
+        learned_patterns: patternCount || 0
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+app.get('/api/genres', async (req, res) => {
+  try {
+    const { data: scripts } = await supabase
+      .from('scripts')
+      .select('genre_tags')
+      .not('genre_tags', 'is', null);
+    
+    const genreSet = new Set();
+    if (scripts) {
+      scripts.forEach(s => {
+        if (s.genre_tags) {
+          s.genre_tags.forEach(g => genreSet.add(g));
+        }
+      });
+    }
+    
+    const genres = Array.from(genreSet).sort();
+    
+    res.json({
+      success: true,
+      genres
+    });
+  } catch (error) {
+    console.error('Error fetching genres:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+app.get('/api/examples/:genre', async (req, res) => {
+  try {
+    const { genre } = req.params;
+    
+    const { data: scripts } = await supabase
+      .from('scripts')
+      .select('title, imdb_rating, year, page_count')
+      .contains('genre_tags', [genre])
+      .gte('imdb_rating', 7.0)
+      .order('imdb_rating', { ascending: false })
+      .limit(10);
+    
+    res.json({
+      success: true,
+      examples: scripts || []
+    });
+  } catch (error) {
+    console.error('Error fetching examples:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+app.post('/api/generate-outline', async (req, res) => {
+  try {
+    const { premise, genre, targetLength } = req.body;
+    
+    if (!premise || !genre) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Missing required fields: premise and genre' 
+      });
+    }
+
+    console.log(`Generating outline for: ${premise} (${genre})`);
+
+    const { data: similarScripts } = await supabase
+      .from('scripts')
+      .select('title, imdb_rating, year, page_count')
+      .contains('genre_tags', [genre])
+      .gte('imdb_rating', 7.0)
+      .order('imdb_rating', { ascending: false })
+      .limit(10);
+
+    const avgPages = similarScripts && similarScripts.length > 0
+      ? Math.round(similarScripts.reduce((sum, s) => sum + (s.page_count || 110), 0) / similarScripts.length)
+      : 110;
+    
+    const totalPages = targetLength || avgPages;
+    
+    const structure = {
+      totalPages: totalPages,
+      act1End: Math.round(totalPages * 0.25),
+      act2aMidpoint: Math.round(totalPages * 0.50),
+      act2bEnd: Math.round(totalPages * 0.75),
+      act3End: totalPages
+    };
+
+    const avgRating = similarScripts && similarScripts.length > 0
+      ? similarScripts.reduce((sum, s) => sum + s.imdb_rating, 0) / similarScripts.length
+      : 7.5;
+    
+    const probability = Math.min(0.95, avgRating / 10);
+
+    const outline = {
+      premise,
+      genre,
+      structure,
+      prediction: {
+        probability: Math.round(probability * 100) / 100,
+        confidence: probability > 0.75 ? 'high' : probability > 0.65 ? 'medium' : 'low',
+        reasoning: similarScripts && similarScripts.length > 0
+          ? `Based on ${similarScripts.length} similar successful ${genre} scripts (avg rating: ${avgRating.toFixed(1)})`
+          : `Based on general industry patterns for ${genre} genre`,
+        comparables: similarScripts && similarScripts.length > 0
+          ? similarScripts.slice(0, 3).map(s => ({
+              title: s.title,
+              rating: s.imdb_rating,
+              year: s.year
+            }))
+          : []
+      },
+      recommendations: {
+        targetLength: `${totalPages} pages`,
+        pacing: 'Follow beat timing for maximum impact',
+        characters: '8-12 distinct characters',
+        dialogue: 'Keep lines concise: 6-9 words average'
+      },
+      act1: {
+        title: 'ACT 1: SETUP',
+        pages: `1-${structure.act1End}`,
+        beats: [
+          {
+            name: 'Opening Image',
+            page: 1,
+            description: 'Establish protagonist ordinary world before journey begins',
+            example: `Introduce protagonist in normal routine for ${genre} genre`
+          },
+          {
+            name: 'Inciting Incident',
+            page: 12,
+            description: 'Event that disrupts ordinary world and starts story',
+            example: `Catalyst forcing protagonist into action: ${premise}`
+          },
+          {
+            name: 'Break into Two',
+            page: structure.act1End,
+            description: 'Protagonist commits to the journey',
+            example: 'Point of no return - enters new world'
+          }
+        ]
+      },
+      act2a: {
+        title: 'ACT 2A: CONFRONTATION',
+        pages: `${structure.act1End + 1}-${structure.act2aMidpoint}`,
+        beats: [
+          {
+            name: 'Fun and Games',
+            page: `${structure.act1End + 10}`,
+            description: 'Promise of the premise - genre expectations delivered',
+            example: `Core ${genre} elements showcased`
+          },
+          {
+            name: 'Midpoint',
+            page: structure.act2aMidpoint,
+            description: 'False victory or defeat - stakes raised',
+            example: 'Everything changes - momentum shifts'
+          }
+        ]
+      },
+      act2b: {
+        title: 'ACT 2B: COMPLICATIONS',
+        pages: `${structure.act2aMidpoint + 1}-${structure.act2bEnd}`,
+        beats: [
+          {
+            name: 'All Is Lost',
+            page: structure.act2bEnd - 15,
+            description: 'Lowest point - appears impossible to win',
+            example: 'Major setback or loss occurs'
+          },
+          {
+            name: 'Break into Three',
+            page: structure.act2bEnd,
+            description: 'Solution discovered - new resolve found',
+            example: 'Protagonist realizes what must be done'
+          }
+        ]
+      },
+      act3: {
+        title: 'ACT 3: RESOLUTION',
+        pages: `${structure.act2bEnd + 1}-${structure.act3End}`,
+        beats: [
+          {
+            name: 'Climax',
+            page: structure.act3End - 10,
+            description: 'Ultimate confrontation - decisive moment',
+            example: `Final ${genre} showdown`
+          },
+          {
+            name: 'Final Image',
+            page: structure.act3End,
+            description: 'Mirror of opening - shows character transformation',
+            example: 'New world established - arc complete'
+          }
+        ]
+      }
+    };
+
+    res.json({
+      success: true,
+      outline
+    });
+
+  } catch (error) {
+    console.error('Error generating outline:', error);
+    res.status(500).json({ 
+      success: false,
+      error: error.message 
+    });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log('\n' + '='.repeat(60));
+  console.log('VESPER42 ENTERTAINMENT INTELLIGENCE API');
+  console.log('='.repeat(60));
+  console.log(`\nServer: http://localhost:${PORT}`);
+  console.log(`\nEndpoints:`);
+  console.log(`   GET  /api/health`);
+  console.log(`   GET  /api/stats`);
+  console.log(`   GET  /api/genres`);
+  console.log(`   GET  /api/examples/:genre`);
+  console.log(`   POST /api/generate-outline`);
+  console.log('\n' + '='.repeat(60) + '\n');
+});
+
+module.exports = app;
