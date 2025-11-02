@@ -273,21 +273,4 @@ app.post('/api/generate-outline', async (req, res) => {
   }
 });
 
-const HOST = process.env.NODE_ENV === 'production' ? '0.0.0.0' : 'localhost';
-const PORT = process.env.PORT || 3001;
-
-app.listen(PORT, HOST, () => {
-  console.log('\n' + '='.repeat(60));
-  console.log('VESPER42 ENTERTAINMENT INTELLIGENCE API');
-  console.log('='.repeat(60));
-  console.log(`\nServer: http://${HOST}:${PORT}`);
-  console.log(`\nEndpoints:`);
-  console.log(`   GET  /api/health`);
-  console.log(`   GET  /api/stats`);
-  console.log(`   GET  /api/genres`);
-  console.log(`   GET  /api/examples/:genre`);
-  console.log(`   POST /api/generate-outline`);
-  console.log('\n' + '='.repeat(60) + '\n');
-});
-
-module.exports = app;
+)Ω
